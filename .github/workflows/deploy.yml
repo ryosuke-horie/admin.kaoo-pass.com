@@ -1,0 +1,46 @@
+name: Deploy Frontend
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: "ap-northeast-1"
+  IAM_ROLE_ARN: ${{ secrets.IAM_ROLE_ARN }}
+  AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+  CF_DISTRIBUTION_ID: ${{ secrets.CF_DISTRIBUTION_ID }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: xhyrom/setup-bun@v0.1.8
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - run: bun run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.IAM_ROLE_ARN}}
+
+      - name: Upload files to S3 and Clear CF cache
+        run: |
+          aws s3 sync --exact-timestamps --delete ./dist s3://${{ env.AWS_BUCKET_NAME }}/
+          aws cloudfront create-invalidation --distribution-id ${{ env.CF_DISTRIBUTION_ID }} --paths "/*"
