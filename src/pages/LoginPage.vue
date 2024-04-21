@@ -20,6 +20,11 @@ const id = ref('');
 const password = ref('');
 
 const login = () => {
-    console.log(id.value, password.value)
+    // 仮の実装のため、特定のID、Passwordであれば認証を許可
+    if (id.value === 'admin' && password.value === 'password') {
+        alert('ログイン成功');
+    } else {
+        alert('ログイン失敗');
+    }
 }
 </script>
